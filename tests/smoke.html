@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>smoke</title></head><body><pre id="out">RUNNING</pre>
+<script>
+window.UI = { status(){}, docChanged(){}, afterScan(){}, refreshAll(){}, onRunState(){}, codeEditor(){ return { value:'' }; } };
+</script>
+<script src="../js/core.js"></script>
+<script src="../js/st.js"></script>
+<script src="../js/il.js"></script>
+<script src="../js/ladder.js"></script>
+<script src="../js/fbd.js"></script>
+<script src="../js/sfc.js"></script>
+<script src="../js/examples.js"></script>
+<script>
+const lines = [];
+let pass = 0, fail = 0;
+function check(name, cond) {
+  if (cond) { pass++; lines.push('  ok  ' + name); }
+  else { fail++; lines.push('FAIL  ' + name); }
+}
+function fresh() { PLC.vars.clear(); PLC.fbs.clear(); PLC.initDefaults(); }
+const scanN = (prog, n, dt = 50) => { for (let i = 0; i < n; i++) prog.scan(dt); };
+
+try {
+  /* ---------- ST ---------- */
+  lines.push('[ST]');
+  fresh();
+  let prog = PLC.ST.compile(PLC.EXAMPLES.st);
+  scanN(prog, 1);
+  check('blink oscillator starts low', PLC.readVar('Q0') === false);
+  scanN(prog, 14);
+  check('Q0 on after 700ms', PLC.readVar('Q0') === true);
+  scanN(prog, 13);
+  check('Q0 back off after pause', PLC.readVar('Q0') === false);
+  check('counter counted a flash', PLC.num(PLC.readVar('AQ0')) >= 1);
+  PLC.writeVar('AI0', 800);
+  scanN(prog, 1);
+  check('threshold Q2 on at AI0=800', PLC.readVar('Q2') === true);
+  PLC.writeVar('AI0', 100);
+  scanN(prog, 1);
+  check('threshold Q2 off at AI0=100', PLC.readVar('Q2') === false);
+
+  fresh();
+  prog = PLC.ST.compile(`
+VAR n : INT; sum : INT; END_VAR
+sum := 0;
+FOR n := 1 TO 10 DO sum := sum + n; END_FOR;
+M0 := sum = 55;
+CASE sum OF
+  1..10: Q3 := FALSE;
+  55: Q3 := TRUE;
+ELSE Q3 := FALSE;
+END_CASE;
+WHILE sum > 0 DO sum := sum - 10; END_WHILE;
+M1 := sum = -5;
+REPEAT sum := sum + 1; UNTIL sum >= 0 END_REPEAT;
+M2 := sum = 0;
+AQ1 := MAX(3, MIN(9, 7)) + ABS(-2) + LIMIT(0, 99, 10) + SEL(TRUE, 100, 1);
+`);
+  scanN(prog, 1);
+  check('FOR loop sum', PLC.readVar('M0') === true);
+  check('CASE range/value', PLC.readVar('Q3') === true);
+  check('WHILE loop', PLC.readVar('M1') === true);
+  check('REPEAT loop', PLC.readVar('M2') === true);
+  check('built-ins (7+2+10+1=20)', PLC.num(PLC.readVar('AQ1')) === 20);
+
+  let threw = false;
+  try { PLC.ST.compile('Q0 := ;'); } catch (e) { threw = true; }
+  check('syntax error reported', threw);
+  threw = false;
+  try { const p = PLC.ST.compile('WHILE TRUE DO M0 := TRUE; END_WHILE;'); p.scan(50); } catch (e) { threw = /infinite/i.test(e.message); }
+  check('infinite loop guarded', threw);
+
+  /* ---------- IL ---------- */
+  lines.push('[IL]');
+  fresh();
+  prog = PLC.IL.compile(PLC.EXAMPLES.il);
+  scanN(prog, 1);
+  check('motor off initially', PLC.readVar('Q0') === false);
+  PLC.writeVar('I0', true);
+  scanN(prog, 1);
+  check('start pressed -> Q0 on', PLC.readVar('Q0') === true);
+  PLC.writeVar('I0', false);
+  scanN(prog, 1);
+  check('seal-in holds Q0', PLC.readVar('Q0') === true);
+  check('Q1 still off before delay', PLC.readVar('Q1') === false);
+  scanN(prog, 31);
+  check('Q1 on after TON delay', PLC.readVar('Q1') === true);
+  PLC.writeVar('I1', true);
+  scanN(prog, 1);
+  check('stop pressed -> Q0 off', PLC.readVar('Q0') === false);
+
+  fresh();
+  prog = PLC.IL.compile(`
+LD TRUE
+AND( I0
+OR I1
+)
+ST M0
+LD 5
+ADD 3
+MUL 2
+ST AQ0
+LD AQ0
+GT 15
+ST M1
+LD TRUE
+S M2
+LD TRUE
+R M3
+JMP skip
+LD TRUE
+ST M4
+skip: LD FALSE
+ST M5
+`);
+  PLC.writeVar('I1', true);
+  scanN(prog, 1);
+  check('deferred AND( OR )', PLC.readVar('M0') === true);
+  check('arith chain (5+3)*2=16', PLC.num(PLC.readVar('AQ0')) === 16);
+  check('GT compare', PLC.readVar('M1') === true);
+  check('S sets', PLC.readVar('M2') === true);
+  check('JMP skips', PLC.readVar('M4') === false);
+
+  /* ---------- Ladder ---------- */
+  lines.push('[LD]');
+  fresh();
+  const LD = PLC.modules.ld;
+  LD.load(PLC.EXAMPLES.ld);
+  prog = LD.compile();
+  scanN(prog, 1);
+  check('motor off initially', PLC.readVar('Q0') === false);
+  PLC.writeVar('I0', true);
+  scanN(prog, 1);
+  check('I0 -> Q0 energised', PLC.readVar('Q0') === true);
+  PLC.writeVar('I0', false);
+  scanN(prog, 2);
+  check('seal-in branch holds Q0', PLC.readVar('Q0') === true);
+  check('Q1 off before timer', PLC.readVar('Q1') === false);
+  scanN(prog, 42);
+  check('Q1 on after TON 2s', PLC.readVar('Q1') === true);
+  PLC.writeVar('I1', true);
+  scanN(prog, 2);
+  check('NC stop drops Q0', PLC.readVar('Q0') === false);
+  scanN(prog, 2);
+  check('timer resets, Q1 off', PLC.readVar('Q1') === false);
+
+  /* ---------- FBD ---------- */
+  lines.push('[FBD]');
+  fresh();
+  const FBD = PLC.modules.fbd;
+  FBD.load(PLC.EXAMPLES.fbd);
+  prog = FBD.compile();
+  const seen = new Set();
+  for (let i = 0; i < 60; i++) { prog.scan(50); seen.add(PLC.readVar('Q0')); }
+  check('oscillator toggles Q0 (saw both states)', seen.has(true) && seen.has(false));
+
+  /* ---------- SFC ---------- */
+  lines.push('[SFC]');
+  fresh();
+  const SFC = PLC.modules.sfc;
+  SFC.load(PLC.EXAMPLES.sfc);
+  prog = SFC.compile();
+  scanN(prog, 2);
+  check('initial step RED active', PLC.readMember('S_RED', 'X') === true && PLC.readVar('Q0') === true);
+  scanN(prog, 62);
+  check('advanced to RED+YEL', PLC.readMember('S_REDYEL', 'X') === true && PLC.readVar('Q1') === true);
+  scanN(prog, 22);
+  check('advanced to GREEN', PLC.readMember('S_GREEN', 'X') === true && PLC.readVar('Q2') === true && PLC.readVar('Q0') === false);
+  scanN(prog, 82);
+  check('advanced to YEL', PLC.readMember('S_YEL', 'X') === true);
+  scanN(prog, 22);
+  check('looped back to RED', PLC.readMember('S_RED', 'X') === true && PLC.readVar('Q0') === true);
+} catch (e) {
+  lines.push('EXCEPTION: ' + e.message + '\n' + (e.stack || ''));
+  fail++;
+}
+
+lines.push('RESULT: ' + pass + ' passed, ' + fail + ' failed');
+document.getElementById('out').textContent = lines.join('\n');
+</script>
+</body></html>

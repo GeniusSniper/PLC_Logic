@@ -1,0 +1,25 @@
+# OS junk
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# logs & temp files
+*.log
+*.tmp
+~$*
+
+# dependencies / build output (none needed today, but just in case)
+node_modules/
+dist/
+build/
+
+# local scratch / secrets
+*.local
+.env
+.env.*

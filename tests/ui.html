@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>ui test</title></head><body>
+<pre id="out">RUNNING</pre>
+<iframe id="app" src="../index.html" style="width:1200px;height:800px"></iframe>
+<script>
+const lines = [];
+let pass = 0, fail = 0;
+function check(name, cond) {
+  if (cond) { pass++; lines.push('  ok  ' + name); }
+  else { fail++; lines.push('FAIL  ' + name); }
+}
+const frame = document.getElementById('app');
+frame.addEventListener('load', () => {
+  try {
+    const doc = frame.contentDocument;
+    const win = frame.contentWindow;
+    const vis = el => el && win.getComputedStyle(el).display !== 'none';
+    const pointer = (el, type) => el.dispatchEvent(new win.PointerEvent(type, { bubbles: true, cancelable: true, view: win }));
+    const clickOn = el => { pointer(el, 'pointerdown'); pointer(el, 'pointerup'); el.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true, view: win })); };
+
+    const gear = doc.getElementById('btn-langs');
+    const menu = () => doc.querySelector('.lang-menu');
+
+    check('menu hidden at boot', !vis(menu()));
+
+    clickOn(gear);
+    check('gear opens menu', vis(menu()));
+
+    // click outside (on the ladder canvas) -> menu must close
+    clickOn(doc.getElementById('ld-canvas'));
+    check('outside click closes menu', !vis(menu()));
+
+    // open again, click the ST language NAME -> visibility inverts (hides), menu stays open
+    clickOn(gear);
+    clickOn(menu().querySelector('.lang-item[data-lang="st"] .lang-name'));
+    check('clicking name hides that section', !vis(doc.getElementById('sec-st')));
+    check('menu stays open after name click', vis(menu()));
+    clickOn(menu().querySelector('.lang-item[data-lang="st"] .lang-name'));
+    check('clicking name again shows it back', vis(doc.getElementById('sec-st')));
+
+    // click the IL CHECKBOX -> same toggle
+    const ilChk = menu().querySelector('.lang-item[data-lang="il"] .chk');
+    clickOn(ilChk);
+    check('checkbox hides that section', !vis(doc.getElementById('sec-il')));
+    check('menu stays open after checkbox', vis(menu()));
+    check('tab dimmed for hidden editor', doc.querySelector('.tab[data-lang="il"]').classList.contains('off'));
+
+    // remaining sections got taller (4 sections share space instead of 5)
+    const hLD = doc.getElementById('sec-ld').getBoundingClientRect().height;
+    clickOn(menu().querySelector('.lang-item[data-lang="il"] .chk'));   // show IL again
+    const hLD5 = doc.getElementById('sec-ld').getBoundingClientRect().height;
+    check('hiding a section makes others larger', hLD > hLD5);
+
+    // escape closes
+    doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    check('Escape closes menu', !vis(menu()));
+
+    // SFC props bar hides correctly too (same [hidden] fix)
+    const props = doc.getElementById('sfc-props');
+    check('SFC props bar hidden by default', !vis(props));
+
+    win.localStorage.clear();   // don't pollute the user's saved layout
+  } catch (e) {
+    lines.push('EXCEPTION: ' + e.message);
+    fail++;
+  }
+  lines.push('RESULT: ' + pass + ' passed, ' + fail + ' failed');
+  document.getElementById('out').textContent = lines.join('\n');
+});
+</script>
+</body></html>

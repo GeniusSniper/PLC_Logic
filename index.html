@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLC Logic Studio — IEC 61131-3 Environment</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand"><span class="bolt">⚡</span>PLC Logic Studio<span class="sub">IEC 61131-3</span></div>
+  <nav id="tabs">
+    <button class="tab active" data-lang="ld"  title="Ladder Diagram">LD<span>Ladder</span></button>
+    <button class="tab" data-lang="fbd" title="Function Block Diagram">FBD<span>Function Block</span></button>
+    <button class="tab" data-lang="st"  title="Structured Text">ST<span>Structured Text</span></button>
+    <button class="tab" data-lang="il"  title="Instruction List">IL<span>Instruction List</span></button>
+    <button class="tab" data-lang="sfc" title="Sequential Function Chart">SFC<span>Sequential FC</span></button>
+    <button id="btn-langs" title="Show or hide language editors">&#9881;</button>
+  </nav>
+  <div class="run-controls">
+    <button id="btn-run" class="btn-run" title="Compile and run the current program">&#9654; Run</button>
+    <button id="btn-stop" class="btn-stop" disabled title="Stop the scan cycle">&#9632; Stop</button>
+    <button id="btn-reset" class="btn-reset" title="Stop and reset all variables / function blocks">&#8634; Reset</button>
+    <span id="scan-info" class="scan-info"></span>
+  </div>
+  <div class="file-controls">
+    <button id="btn-example" title="Load an example program into the current editor">Example</button>
+    <button id="btn-export" title="Download the whole project as JSON">Export</button>
+    <button id="btn-import" title="Load a project JSON file">Import</button>
+    <input type="file" id="file-import" accept=".json,application/json" hidden>
+  </div>
+</header>
+
+<main>
+  <section id="editor">
+    <div class="ed-section" id="sec-ld">
+      <div class="sec-head"><span class="sec-dot"></span>Ladder Diagram (LD)<button class="sec-hide" data-lang="ld" title="Hide this section">&#10005;</button></div>
+      <div class="pane" id="pane-ld"></div>
+    </div>
+    <div class="ed-section" id="sec-fbd">
+      <div class="sec-head"><span class="sec-dot"></span>Function Block Diagram (FBD)<button class="sec-hide" data-lang="fbd" title="Hide this section">&#10005;</button></div>
+      <div class="pane" id="pane-fbd"></div>
+    </div>
+    <div class="ed-section" id="sec-st">
+      <div class="sec-head"><span class="sec-dot"></span>Structured Text (ST)<button class="sec-hide" data-lang="st" title="Hide this section">&#10005;</button></div>
+      <div class="pane" id="pane-st"></div>
+    </div>
+    <div class="ed-section" id="sec-il">
+      <div class="sec-head"><span class="sec-dot"></span>Instruction List (IL)<button class="sec-hide" data-lang="il" title="Hide this section">&#10005;</button></div>
+      <div class="pane" id="pane-il"></div>
+    </div>
+    <div class="ed-section" id="sec-sfc">
+      <div class="sec-head"><span class="sec-dot"></span>Sequential Function Chart (SFC)<button class="sec-hide" data-lang="sfc" title="Hide this section">&#10005;</button></div>
+      <div class="pane" id="pane-sfc"></div>
+    </div>
+  </section>
+
+  <div id="splitter" title="Drag to resize the side panel"></div>
+  <aside id="sidebar">
+    <section class="panel" id="panel-io">
+      <h2 class="panel-head" title="Click to collapse/expand"><span class="caret"></span>I/O Simulator</h2>
+      <div class="panel-body">
+        <div class="io-group"><h3>Digital inputs</h3><div id="io-di" class="io-grid"></div></div>
+        <div class="io-group"><h3>Digital outputs</h3><div id="io-do" class="io-grid"></div></div>
+        <div class="io-group"><h3>Analog</h3><div id="io-an" class="io-analog"></div></div>
+      </div>
+    </section>
+    <section class="panel" id="panel-vars">
+      <h2 class="panel-head" title="Click to collapse/expand"><span class="caret"></span>Variables <button id="btn-add-var" class="mini-btn" title="Add a variable">+ Add</button></h2>
+      <div class="panel-body">
+        <table class="data-table" id="var-table"><tbody></tbody></table>
+      </div>
+    </section>
+    <section class="panel" id="panel-fbs">
+      <h2 class="panel-head" title="Click to collapse/expand"><span class="caret"></span>Function blocks</h2>
+      <div class="panel-body">
+        <table class="data-table" id="fb-table"><tbody></tbody></table>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<footer id="statusbar"><span id="status-msg">Ready.</span></footer>
+
+<div id="modal-root" hidden></div>
+
+<script src="js/core.js"></script>
+<script src="js/st.js"></script>
+<script src="js/il.js"></script>
+<script src="js/ladder.js"></script>
+<script src="js/fbd.js"></script>
+<script src="js/sfc.js"></script>
+<script src="js/examples.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
