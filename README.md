@@ -1,10 +1,8 @@
 # ⚡ PLC Logic Studio
 
-**🔗 Live demo: [https://geniussniper.github.io/PLC_Logic/](https://geniussniper.github.io/PLC_Logic/)**
+**🔗 Live demo: [PLC_Logic](https://geniussniper.github.io/PLC_Logic/)**
 
 A browser-based **PLC programming environment** supporting all five **IEC 61131-3** languages, with a live scan-cycle simulator, an interactive I/O panel, and standard function blocks (timers, counters, bistables, edge detectors).
-
-100% static — no build step, no server, no dependencies. It runs anywhere a browser runs, including **GitHub Pages**.
 
 ## Languages
 

@@ -8,14 +8,19 @@ PLC.EXAMPLES = {
 
   /* Motor start/stop with seal-in branch + delayed lamp */
   ld: {
-    rows: 4,
-    cells: [
-      [{ t: 'NO', name: 'I0' }, { t: 'NC', name: 'I1' }, { t: 'H' }, { t: 'H' }, { t: 'H' }, { t: 'H' }, { t: 'H' }, { t: 'COIL', name: 'Q0' }],
-      [{ t: 'NO', name: 'Q0' }, null, null, null, null, null, null, null],
-      [{ t: 'NO', name: 'Q0' }, { t: 'TON', name: 'T1', pt: 2000 }, { t: 'H' }, { t: 'H' }, { t: 'H' }, { t: 'H' }, { t: 'H' }, { t: 'COIL', name: 'Q1' }],
-      [null, null, null, null, null, null, null, null],
+    rungs: [
+      [
+        { t: 'BR', arms: [[{ t: 'NO', name: 'I0' }], [{ t: 'NO', name: 'Q0' }]] },
+        { t: 'NC', name: 'I1' },
+        { t: 'COIL', name: 'Q0' },
+      ],
+      [
+        { t: 'NO', name: 'Q0' },
+        { t: 'TON', name: 'T1', pt: 2000 },
+        { t: 'COIL', name: 'Q1' },
+      ],
+      [],
     ],
-    vlinks: [[0, 1]],
   },
 
   /* Two on-delay timers wired as an oscillator flashing Q0 */

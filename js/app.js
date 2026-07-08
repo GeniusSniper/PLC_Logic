@@ -46,9 +46,18 @@ const UI = window.UI = {
         <h3>${esc(title)}</h3>
         ${note ? `<div class="m-note">${esc(note)}</div>` : ''}
         ${fields.map(f => `<div class="m-field"><label>${esc(f.label)}</label>${
-          f.type === 'select'
+          f.type === 'choice'
+            ? `<div class="m-choice" data-k="${f.key}">${f.options.map(o => {
+                const v = o && o.v !== undefined ? o.v : o;
+                const label = o && o.label !== undefined ? o.label : o;
+                return `<button type="button" class="m-chip${v === f.value ? ' on' : ''}" data-v="${escAttr(v)}">${esc(label)}</button>`;
+              }).join('')}</div>`
+            : f.type === 'select'
             ? `<select data-k="${f.key}">${f.options.map(o => `<option${o === f.value ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`
-            : `<input data-k="${f.key}" type="${f.type === 'number' ? 'number' : 'text'}" value="${escAttr(f.value ?? '')}">`
+            : `<input data-k="${f.key}" type="${f.type === 'number' ? 'number' : 'text'}" value="${escAttr(f.value ?? '')}">` +
+              (f.options && f.options.length
+                ? `<div class="m-opts" data-for="${f.key}">${f.options.map(o => `<button type="button" class="m-chip">${esc(o)}</button>`).join('')}</div>`
+                : '')
         }</div>`).join('')}
         <div class="m-btns"><button class="m-cancel">Cancel</button><button class="m-ok">OK</button></div>
       </div></div>`;
@@ -56,9 +65,29 @@ const UI = window.UI = {
       const done = val => { root.hidden = true; root.innerHTML = ''; resolve(val); };
       const collect = () => {
         const o = {};
-        root.querySelectorAll('[data-k]').forEach(el => { o[el.dataset.k] = el.value; });
+        root.querySelectorAll('[data-k]').forEach(el => {
+          if (el.classList.contains('m-choice')) {
+            const on = el.querySelector('.m-chip.on');
+            o[el.dataset.k] = on ? (on.dataset.v !== undefined ? on.dataset.v : on.textContent) : '';
+          } else {
+            o[el.dataset.k] = el.value;
+          }
+        });
         return o;
       };
+      // clicking a variable chip fills the field it belongs to
+      root.querySelectorAll('.m-opts').forEach(w => w.addEventListener('click', e => {
+        const chip = e.target.closest('.m-chip');
+        if (!chip) return;
+        const input = root.querySelector(`input[data-k="${w.dataset.for}"]`);
+        if (input) { input.value = chip.textContent; input.focus(); }
+      }));
+      // choice rows: exactly one chip active
+      root.querySelectorAll('.m-choice').forEach(w => w.addEventListener('click', e => {
+        const chip = e.target.closest('.m-chip');
+        if (!chip) return;
+        w.querySelectorAll('.m-chip').forEach(c => c.classList.toggle('on', c === chip));
+      }));
       root.querySelector('.m-ok').addEventListener('click', () => done(collect()));
       root.querySelector('.m-cancel').addEventListener('click', () => done(null));
       root.querySelector('.modal-back').addEventListener('pointerdown', e => {
@@ -349,6 +378,23 @@ function wireControls() {
   $('#btn-stop').addEventListener('click', () => PLC.engine.stop());
   $('#btn-reset').addEventListener('click', () => PLC.engine.reset());
 
+  $('#btn-new').addEventListener('click', async () => {
+    const ok = await UI.confirm('Start a new empty project? All programs and custom variables will be erased.');
+    if (!ok) return;
+    if (PLC.engine.running) PLC.engine.stop();
+    LANGS.forEach(l => PLC.modules[l].load(null));
+    Array.from(PLC.vars.keys()).forEach(k => { if (!DEFAULT_VARS.has(k)) PLC.deleteVar(k); });
+    PLC.fbs.clear();
+    PLC.resetState();
+    layoutState.hiddenLangs = LANGS.filter(l => l !== 'ld');
+    applyLangVisibility();
+    if (saveLayoutFn) saveLayoutFn();
+    activate('ld');
+    updatePanels();
+    saveProject();
+    UI.status('New empty project — Ladder editor shown; open other languages with the tabs or the ⚙ menu.');
+  });
+
   $('#btn-example').addEventListener('click', async () => {
     const mod = PLC.modules[current];
     const ok = await UI.confirm(`Replace the current ${mod.title} program with the example?`);
@@ -512,7 +558,10 @@ function initLayout() {
   });
 
   /* ----- show/hide language editors (gear menu in the tab bar) ----- */
-  layout.hiddenLangs = Array.isArray(layout.hiddenLangs) ? layout.hiddenLangs.filter(l => LANGS.includes(l)) : [];
+  // first launch (no saved layout): show only the Ladder editor
+  layout.hiddenLangs = Array.isArray(layout.hiddenLangs)
+    ? layout.hiddenLangs.filter(l => LANGS.includes(l))
+    : LANGS.filter(l => l !== 'ld');
   if (layout.hiddenLangs.length >= LANGS.length) layout.hiddenLangs = [];
   applyLangVisibility();
 

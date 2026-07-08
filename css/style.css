@@ -239,6 +239,11 @@ main { flex: 1; display: flex; min-height: 0; }
   flex: 1; overflow: auto; background: #14181f;
   background-image: radial-gradient(#1e2530 1px, transparent 1px);
   background-size: 24px 24px;
+  position: relative;
+}
+.ins-caret {
+  position: absolute; width: 3px; border-radius: 2px; pointer-events: none;
+  background: var(--accent); box-shadow: 0 0 6px rgba(77,171,247,.8);
 }
 .ed-canvas svg { display: block; }
 
@@ -289,6 +294,22 @@ main { flex: 1; display: flex; min-height: 0; }
 .fbtitle { fill: var(--text); font: 700 12px var(--mono); text-anchor: middle; }
 .cellhit { fill: transparent; cursor: crosshair; }
 .cellhit:hover { fill: rgba(255,255,255,.05); }
+.cellhit.drop { fill: rgba(77,171,247,.18); stroke: var(--accent); stroke-width: 1.5; }
+.cellhit[data-side] { cursor: ew-resize; }
+.ed-toolbar button.tool[draggable="true"] { cursor: grab; }
+.rowsel { fill: rgba(77,171,247,.08); pointer-events: none; }
+.cellsel { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
+
+/* clickable variable choices in modal dialogs */
+.m-opts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; max-height: 78px; overflow-y: auto; }
+.m-chip {
+  font: 11px var(--mono); color: var(--text); background: var(--panel2);
+  border: 1px solid var(--border); border-radius: 10px; padding: 2px 8px; cursor: pointer;
+}
+.m-chip:hover { border-color: var(--accent); color: var(--accent); }
+.m-choice { display: flex; flex-wrap: wrap; gap: 4px; }
+.m-choice .m-chip { font-size: 13px; padding: 3px 10px; }
+.m-choice .m-chip.on { border-color: var(--accent); color: var(--accent); background: #1c2b3a; }
 
 .blk { fill: #242c37; stroke: #4a5563; stroke-width: 1.5; cursor: grab; }
 .blk.sel { stroke: var(--accent); stroke-width: 2; }
